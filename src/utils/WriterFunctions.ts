@@ -27,7 +27,7 @@ export const WriterFunctions = {
     object: object as (obj: { [key: string]: WriterFunctionOrValue | undefined; }) => WriterFunction
 };
 
-export function getWriterFunctions(structurePrinterFactory: StructurePrinterFactory): WriterFunctions {
+export function getWriterFunctions(): WriterFunctions {
     return {
         object,
         objectType,
@@ -36,7 +36,7 @@ export function getWriterFunctions(structurePrinterFactory: StructurePrinterFact
     };
 
     function objectType(structure: TypeElementMemberedNodeStructure): WriterFunction {
-        return (writer: CodeBlockWriter) => {
+        return (writer: CodeBlockWriter, structurePrinterFactory: StructurePrinterFactory) => {
             writer.write("{");
             if (anyPropertyHasValue(structure)) {
                 writer.indentBlock(() => {
@@ -49,21 +49,21 @@ export function getWriterFunctions(structurePrinterFactory: StructurePrinterFact
 
     function unionType(firstType: WriterFunctionOrValue, secondType: WriterFunctionOrValue, ...additionalTypes: WriterFunctionOrValue[]) {
         const allTypes = [firstType, secondType, ...additionalTypes];
-        return (writer: CodeBlockWriter) => {
-            writeSeparatedByString(writer, " | ", allTypes);
+        return (writer: CodeBlockWriter, structurePrinterFactory: StructurePrinterFactory) => {
+            writeSeparatedByString(writer, structurePrinterFactory, " | ", allTypes);
         };
     }
 
     function intersectionType(firstType: WriterFunctionOrValue, secondType: WriterFunctionOrValue, ...additionalTypes: WriterFunctionOrValue[]) {
         const allTypes = [firstType, secondType, ...additionalTypes];
-        return (writer: CodeBlockWriter) => {
-            writeSeparatedByString(writer, " & ", allTypes);
+        return (writer: CodeBlockWriter, structurePrinterFactory: StructurePrinterFactory) => {
+            writeSeparatedByString(writer, structurePrinterFactory, " & ", allTypes);
         };
     }
 }
 
 function object(obj: { [key: string]: WriterFunctionOrValue | undefined; }): WriterFunction {
-    return (writer: CodeBlockWriter) => {
+    return (writer: CodeBlockWriter, structurePrinterFactory: StructurePrinterFactory) => {
         const keyNames = Object.keys(obj);
         writer.write("{");
         if (keyNames.length > 0) {
@@ -83,7 +83,7 @@ function object(obj: { [key: string]: WriterFunctionOrValue | undefined; }): Wri
                 writer.write(keyName);
                 if (value != null) {
                     writer.write(": ");
-                    writeValue(writer, value);
+                    writeValue(writer, structurePrinterFactory, value);
                 }
             }
 
@@ -105,16 +105,16 @@ function anyPropertyHasValue(obj: any) {
     return false;
 }
 
-function writeSeparatedByString(writer: CodeBlockWriter, separator: string, values: WriterFunctionOrValue[]) {
+function writeSeparatedByString(writer: CodeBlockWriter, structurePrinterFactory: StructurePrinterFactory, separator: string, values: WriterFunctionOrValue[]) {
     for (let i = 0; i < values.length; i++) {
         writer.conditionalWrite(i > 0, separator);
-        writeValue(writer, values[i]);
+        writeValue(writer, structurePrinterFactory, values[i]);
     }
 }
 
-function writeValue(writer: CodeBlockWriter, value: WriterFunctionOrValue) {
+function writeValue(writer: CodeBlockWriter, structurePrinterFactory: StructurePrinterFactory, value: WriterFunctionOrValue) {
     if (value instanceof Function)
-        value(writer);
+        value(writer, structurePrinterFactory);
     else
         writer.write(value.toString());
 }
